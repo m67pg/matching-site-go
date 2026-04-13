@@ -1,7 +1,7 @@
 # -----------------------------
 # ステージ1: ビルド環境
 # -----------------------------
-FROM golang:1.22-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 # 必要なパッケージのインストール
 RUN apk add --no-cache git tzdata
@@ -21,7 +21,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-w -s" -o server main.
 # -----------------------------
 # ステージ2: 本番用軽量イメージ
 # -----------------------------
-FROM alpine:3.19
+FROM alpine:3.20
 
 # 証明書などのインストール
 RUN apk add --no-cache ca-certificates tzdata
