@@ -10,10 +10,10 @@ WORKDIR /app
 
 # モジュールファイルのコピーと依存関係のダウンロード
 COPY go.mod ./
-RUN go mod tidy && go mod download
 
 # ソースコードのコピー
 COPY . .
+RUN go mod tidy && go mod download
 
 # バイナリのビルド (CGO_ENABLED=0 によって静的リンクとする)
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-w -s" -o server main.go
