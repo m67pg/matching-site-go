@@ -38,6 +38,8 @@ jobs:
         with:
           project_id: ${{ env.PROJECT_ID }}
 
+      - name: Set GCP Project
+        run: gcloud config set project ${{ env.PROJECT_ID }}
       - name: Configure Docker to use gcloud as credential helper
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
