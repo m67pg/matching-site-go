@@ -1,0 +1,20 @@
+{
+  "hosting": {
+    "public": "frontend/out",
+    "ignore": [
+      "frontend/.git/**",
+      "frontend/.next/**",
+      "frontend/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "region": "asia-northeast1"
+    }
+  },
+  "frameworks": {
+    "next": {
+      "buildCommand": "cd frontend && npm run build",
+      "outputDirectory": "frontend/out",
+      "sourceDirectory": "frontend"
+    }
+  }
+}
