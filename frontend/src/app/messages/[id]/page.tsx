@@ -1,7 +1,3 @@
-﻿export async function generateStaticParams() {
-  return [];
-}
-
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -44,10 +40,12 @@ export default function MessagePage() {
 
     console.log(`[DEBUG] ChatPage: Fetching chat data for partnerId=${partnerId}...`);
     try {
-      // 閾ｪ蛻・・ID繧貞叙蠕・      const meRes = await fetchApi("/api/me");
+      // 自分のIDを取得
+      const meRes = await fetchApi("/api/me");
       setCurrentUserId(meRes.user.id);
 
-      // 逶ｸ謇九・諠・ｱ繧貞叙蠕・      console.log(`[DEBUG] ChatPage: Fetching partner info from /api/users/${partnerId}`);
+      // 相手の情報を取得
+      console.log(`[DEBUG] ChatPage: Fetching partner info from /api/users/${partnerId}`);
       const partnerRes = await fetchApi(`/api/users/${partnerId}`);
       setPartner(partnerRes.user);
 
@@ -64,14 +62,16 @@ export default function MessagePage() {
     fetchChat();
   }, [fetchChat]);
 
-  // WebSocket 縺悟・謗･邯壹＆繧後◆髫帙↓繝・・繧ｿ繧貞・蜿門ｾ励☆繧・  useEffect(() => {
+  // WebSocket が再接続された際にデータを再取得する
+  useEffect(() => {
     if (connectionVersion > 1) {
       console.log("[DEBUG] ChatPage: Socket reconnected, re-fetching messages...");
       fetchChat();
     }
   }, [connectionVersion, fetchChat]);
 
-  // WebSocket 縺ｫ繧医ｋ繝ｪ繧｢繝ｫ繧ｿ繧､繝蜿嶺ｿ｡縺ｮ險ｭ螳・  useEffect(() => {
+  // WebSocket によるリアルタイム受信の設定
+  useEffect(() => {
     const unsubscribe = subscribe((data) => {
       console.log("[WS_DEBUG] ChatPage: Received event:", data);
 
@@ -79,7 +79,7 @@ export default function MessagePage() {
         const msg = data.message as Message;
         const targetPartnerId = parseInt(partnerId, 10);
 
-        // 蛻､螳壹Ο繧ｸ繝・け
+        // 判定ロジック
         const isFromPartner = msg.SenderID === targetPartnerId;
         const isFromMeToPartner = msg.SenderID === currentUserId && msg.ReceiverID === targetPartnerId;
 
@@ -87,14 +87,15 @@ export default function MessagePage() {
 
         if (isFromPartner || isFromMeToPartner) {
           setMessages((prev) => {
-            // Case B: ID縺ｫ繧医ｋ驥崎､・メ繧ｧ繝・け
-            const msgId = msg.id || (msg as any).ID; // JSON繧ｭ繝ｼ縺ｮ蟾ｮ逡ｰ繧定・・
+            // Case B: IDによる重複チェック
+            const msgId = msg.id || (msg as any).ID; // JSONキーの差異を考慮
             if (prev.some((m) => (m.id || (m as any).ID) === msgId)) {
               console.log("[WS_DEBUG] Duplicate message detected (ID match), ignoring.");
               return prev;
             }
 
-            // Case A: 閾ｪ蛻・′騾∽ｿ｡縺励◆繝｡繝・そ繝ｼ繧ｸ縺ｯ handleSend 縺ｧ霑ｽ蜉貂医∩縺ｪ縺ｮ縺ｧ WebSocket 邨檎罰縺ｧ縺ｯ辟｡隕悶☆繧具ｼ井ｺ碁㍾陦ｨ遉ｺ髦ｲ豁｢・・            // 縺溘□縺励√ｂ縺・handleSend 縺ｧ縺ｮ霑ｽ蜉縺御ｽ輔ｉ縺九・逅・罰縺ｧ縺ｾ縺縺ｪ繧峨√％縺薙〒霑ｽ蜉縺吶ｋ
+            // Case A: 自分が送信したメッセージは handleSend で追加済みなので WebSocket 経由では無視する（二重表示防止）
+            // ただし、もし handleSend での追加が何らかの理由でまだなら、ここで追加する
             if (msg.SenderID === currentUserId) {
               console.log("[WS_DEBUG] Self-sent message received via WS, skipping to avoid duplication.");
               return prev;
@@ -111,7 +112,8 @@ export default function MessagePage() {
   }, [partnerId, subscribe, currentUserId]);
 
   useEffect(() => {
-    // 繧ｹ繧ｯ繝ｭ繝ｼ繝ｫ繧剃ｸ逡ｪ荳九∈・井ｾ晏ｭ倬・蛻励ｒ繝｡繝・そ繝ｼ繧ｸ縺悟｢励∴縺滓凾縺ｮ縺ｿ縺ｫ・・    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    // スクロールを一番下へ（依存配列をメッセージが増えた時のみに）
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
   const handleSend = async (e?: React.FormEvent) => {
@@ -119,9 +121,9 @@ export default function MessagePage() {
     if (!content.trim()) return;
 
     const tempContent = content.trim();
-    setContent(""); // 蜊ｳ蠎ｧ縺ｫ蜈･蜉帶ｬ・ｒ繧ｯ繝ｪ繧｢
+    setContent(""); // 即座に入力欄をクリア
 
-    // 繝・く繧ｹ繝医お繝ｪ繧｢縺ｮ鬮倥＆繧偵Μ繧ｻ繝・ヨ
+    // テキストエリアの高さをリセット
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
@@ -134,7 +136,7 @@ export default function MessagePage() {
           content: tempContent,
         }),
       });
-      // API繝ｬ繧ｹ繝昴Φ繧ｹ謌仙粥譎ゅ↓繝ｪ繧ｹ繝医↓霑ｽ蜉
+      // APIレスポンス成功時にリストに追加
       setMessages((prev) => {
         const newMsg = res.message as Message;
         const msgId = newMsg.id || (newMsg as any).ID;
@@ -162,15 +164,16 @@ export default function MessagePage() {
     }
   };
 
-  // 繝｡繝・そ繝ｼ繧ｸ縺ｮ騾∽ｿ｡閠・′閾ｪ蛻・°縺ｩ縺・°縺ｮ蛻､螳・  const isMe = (msg: Message) => msg.SenderID === currentUserId;
+  // メッセージの送信者が自分かどうかの判定
+  const isMe = (msg: Message) => msg.SenderID === currentUserId;
 
-  // 譌･譎ゅヵ繧ｩ繝ｼ繝槭ャ繝育畑縺ｮ繝倥Ν繝代・
+  // 日時フォーマット用のヘルパー
   const formatFullDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const y = date.getFullYear();
     const m = date.getMonth() + 1;
     const d = date.getDate();
-    const day = ["譌･", "譛・, "轣ｫ", "豌ｴ", "譛ｨ", "驥・, "蝨・][date.getDay()];
+    const day = ["日", "月", "火", "水", "木", "金", "土"][date.getDay()];
     const hh = date.getHours().toString().padStart(2, '0');
     const mm = date.getMinutes().toString().padStart(2, '0');
 
@@ -182,8 +185,8 @@ export default function MessagePage() {
     const y = date.getFullYear();
     const m = date.getMonth() + 1;
     const d = date.getDate();
-    const day = ["譌･", "譛・, "轣ｫ", "豌ｴ", "譛ｨ", "驥・, "蝨・][date.getDay()];
-    return `${y}蟷ｴ${m}譛・{d}譌･(${day})`;
+    const day = ["日", "月", "火", "水", "木", "金", "土"][date.getDay()];
+    return `${y}年${m}月${d}日(${day})`;
   };
 
   const isNewDay = (msg: Message, prevMsg: Message | null) => {
@@ -203,14 +206,14 @@ export default function MessagePage() {
           </Button>
           <div className="flex flex-col">
             <h1 className="text-xl font-bold text-gray-900 leading-tight flex items-center tracking-tight">
-              {partner?.username || "繝√Ε繝・ヨ"}
+              {partner?.username || "チャット"}
               <div
                 className={`ml-2 w-3 h-3 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)] ${isConnected ? "bg-green-500 animate-pulse" : "bg-gray-300 shadow-none"}`}
-                title={isConnected ? "謗･邯壻ｸｭ" : "蛻・妙荳ｭ"}
+                title={isConnected ? "接続中" : "切断中"}
               />
             </h1>
             <span className={`text-[11px] mt-0.5 font-semibold tracking-wide ${isConnected ? "text-green-600" : "text-gray-400"}`}>
-              {isConnected ? "繝ｻ繧ｪ繝ｳ繝ｩ繧､繝ｳ" : "繧ｪ繝輔Λ繧､繝ｳ"}
+              {isConnected ? "・オンライン" : "オフライン"}
             </span>
           </div>
         </div>
@@ -223,7 +226,8 @@ export default function MessagePage() {
         <div className="space-y-6 pb-4 max-w-6xl mx-auto">
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 py-10 text-sm">
-              縺ｾ縺繝｡繝・そ繝ｼ繧ｸ縺後≠繧翫∪縺帙ｓ縲・br />譛蛻昴・繝｡繝・そ繝ｼ繧ｸ繧帝√ｊ縺ｾ縺励ｇ縺・ｼ・            </div>
+              まだメッセージがありません。<br />最初のメッセージを送りましょう！
+            </div>
           ) : (
             messages.map((msg, index) => {
               const prevMsg = index > 0 ? messages[index - 1] : null;
@@ -276,7 +280,7 @@ export default function MessagePage() {
               adjustHeight();
             }}
             onKeyDown={handleKeyDown}
-            placeholder="繝｡繝・そ繝ｼ繧ｸ繧貞・蜉・.."
+            placeholder="メッセージを入力..."
             rows={1}
             className="flex-1 bg-zinc-100 border-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-2xl px-4 py-3 resize-none min-h-[44px] transition-all overflow-hidden"
           />
@@ -285,12 +289,11 @@ export default function MessagePage() {
             disabled={!content.trim()}
             className="bg-indigo-600 hover:bg-indigo-700 text-white transition-all h-[44px] px-6 rounded-2xl font-bold shadow-lg active:scale-95"
           >
-            騾∽ｿ｡
+            送信
           </Button>
         </div>
       </div>
     </div>
   );
 }
-
 
