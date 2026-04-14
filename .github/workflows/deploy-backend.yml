@@ -21,11 +21,16 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Debug
+      run: |
+        echo "PROJECT_ID=${{ env.PROJECT_ID }}"
+        gcloud config get-value project
+    
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Google Auth
-        id: auth
+    - name: Google Auth
+      id: auth
         uses: google-github-actions/auth@v2.1.3
         with:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
