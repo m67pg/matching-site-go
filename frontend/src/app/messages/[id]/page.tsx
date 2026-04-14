@@ -1,5 +1,6 @@
-export async function generateStaticParams() {
+﻿export async function generateStaticParams() {
   return [];
 }
 
-export { default } from "./MessagePageClient";
+import MessagePageClient from "./MessagePageClient";
+export default MessagePageClient;
