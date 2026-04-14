@@ -21,11 +21,6 @@ jobs:
       id-token: write
 
     steps:
-    - name: Debug
-      run: |
-        echo "PROJECT_ID=${{ env.PROJECT_ID }}"
-        gcloud config get-value project
-    
     - name: Checkout code
       uses: actions/checkout@v4
 
@@ -43,12 +38,17 @@ jobs:
         with:
           project_id: ${{ env.PROJECT_ID }}
 
-      - name: Configure Docker to use gcloud as credential helper
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+    - name: Debug
+      run: |
+        echo "PROJECT_ID=${{ env.PROJECT_ID }}"
+        gcloud config get-value project
+    
+    - name: Configure Docker to use gcloud as credential helper
+      run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
-      - name: Build and push Docker image
-        run: |
-          cd backend
+    - name: Build and push Docker image
+      run: |
+        cd backend
           docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
 
